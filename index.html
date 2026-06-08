@@ -971,26 +971,29 @@ footer{background:var(--dark);padding:3.5rem 5rem;border-top:1px solid var(--bor
     <div>
       <h3 style="margin-bottom:.5rem">Request a site assessment</h3>
       <p style="font-size:.83rem;color:rgba(247,244,238,.42);margin-bottom:2rem">Fill in what you know. We'll come to site and tell you the rest.</p>
+      <form onsubmit="submitForm(event)">
       <div class="form-row">
-        <div class="form-field"><label>Your Name</label><input type="text" placeholder="Name"></div>
-        <div class="form-field"><label>Company / Strata Scheme</label><input type="text" placeholder="Company or SP number"></div>
+        <div class="form-field"><label>Your Name</label><input type="text" name="name" placeholder="Name"></div>
+        <div class="form-field"><label>Company / Strata Scheme</label><input type="text" name="company" placeholder="Company or SP number"></div>
       </div>
       <div class="form-row">
-        <div class="form-field"><label>Phone</label><input type="tel" placeholder="02 xxxx xxxx"></div>
-        <div class="form-field"><label>Email</label><input type="email" placeholder="your@email.com"></div>
+        <div class="form-field"><label>Phone</label><input type="tel" name="phone" placeholder="02 xxxx xxxx"></div>
+        <div class="form-field"><label>Email</label><input type="email" name="email" placeholder="your@email.com"></div>
       </div>
       <div class="form-field"><label>Type of Work</label>
         <select><option value="">— Select —</option><option>Water Ingress</option><option>Concrete Cancer</option><option>Structural Repair</option><option>Old Buildings</option><option>Heritage Works</option><option>Government / Schools</option><option>Multiple / Not sure</option></select>
       </div>
-      <div class="form-field"><label>Site Address</label><input type="text" placeholder="Street address, suburb"></div>
+      <div class="form-field"><label>Site Address</label><input type="text" name="address" placeholder="Street address, suburb"></div>
       <div class="form-row">
-        <div class="form-field"><label>Number of Units (if strata)</label><input type="number" placeholder="e.g. 24"></div>
+        <div class="form-field"><label>Number of Units (if strata)</label><input type="number" name="lots" placeholder="e.g. 24"></div>
         <div class="form-field"><label>Existing Report?</label>
           <select><option>No existing report</option><option>Yes — engineering report</option><option>Yes — defect report</option><option>Yes — strata inspection report</option></select></div>
       </div>
-      <div class="form-field"><label>Tell us about the defect</label><textarea placeholder="Describe what you're seeing — leaks, cracks, spalling, rust staining, or anything else flagged."></textarea></div>
-      <button class="btn-primary" style="width:100%;padding:1rem" onclick="submitForm()">Send Enquiry →</button>
+      <div class="form-field"><label>Tell us about the defect</label><textarea name="message" placeholder="Describe what you're seeing — leaks, cracks, spalling, rust staining, or anything else flagged."></textarea></div>
+      <button class="btn-primary" style="width:100%;padding:1rem" type="submit">Send Enquiry →</button>
+      <div id="form-status"></div>
       <p style="font-size:.7rem;color:var(--muted);margin-top:1rem;text-align:center">We respond within one business day. References available on request.</p>
+      </form>
     </div>
     <div>
       <h3 style="margin-bottom:1rem">Direct contact</h3>
@@ -1055,7 +1058,41 @@ function show(id){
   if(map[id]!==undefined)links[map[id]].classList.add('active');
 }
 function toggleNav(){document.getElementById('navLinks').classList.toggle('open')}
-function submitForm(){alert('Thank you — we\'ll be in touch within one business day.\n\nFor urgent enquiries: 1800 ALLICOE (1800 255 426)')}
+async function submitForm(event) {
+  event.preventDefault();
+  const form = event.target;
+  const data = new FormData(form);
+  const statusElement = document.getElementById("form-status");
+  const formspreeEndpoint = "https://formspree.io/f/mnjydpwy";
+  try {
+    const response = await fetch(formspreeEndpoint, {
+      method: "POST",
+      body: data,
+      headers: { 'Accept': 'application/json' }
+    });
+    if (response.ok) {
+      if (statusElement) {
+        statusElement.textContent = "Thank you! Your message has been sent successfully.";
+        statusElement.className = "text-green-600 font-medium mt-4";
+      }
+      form.reset();
+    } else {
+      const responseData = await response.json();
+      if (Object.hasOwn(responseData, 'errors')) {
+        if (statusElement) statusElement.textContent = responseData.errors.map(error => error.message).join(", ");
+      } else {
+        if (statusElement) statusElement.textContent = "Oops! There was a problem submitting your form.";
+      }
+      if (statusElement) statusElement.className = "text-red-600 font-medium mt-4";
+    }
+  } catch (error) {
+    if (statusElement) {
+      statusElement.textContent = "Oops! There was a connectivity issue. Please try again later.";
+      statusElement.className = "text-red-600 font-medium mt-4";
+    }
+  }
+}
+
 document.addEventListener('click',function(e){
   const nav=document.getElementById('navLinks');
   const ham=document.getElementById('hamburger');
